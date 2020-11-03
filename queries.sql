@@ -8,7 +8,7 @@ FROM oc_pizza.restaurant rest JOIN oc_pizza.address address ON address.id = rest
 
 SELECT us.id, us.first_name, us.last_name, us.phone_number, us.email, us.password,
     address.city, address.zip_code, address.country, address.address_infos, address.address_additional_infos,
-    role.name, rest.name
+    role.name, rest.name restaurant_name
 
 FROM oc_pizza.user us
     JOIN oc_pizza.address address ON address.id = us.address_id
