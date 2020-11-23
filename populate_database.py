@@ -1,5 +1,6 @@
 import psycopg2
 import random
+from os import environ
 from faker import Faker
 from data import DATA
 
@@ -86,7 +87,7 @@ class PopulateDatabase:
             # One user per role for each restaurant, when reached the 4 roles, switch to the second restaurant
             if (_ == 3) or (_ == 7) or (_ == 11) or (_ == 15):
                 restaurant_id += 1
-                role_id = 1
+                role_id = 2
 
         return user_list
 
@@ -94,7 +95,7 @@ class PopulateDatabase:
 
         users = self._get_user_info()
         self.cursor.executemany(
-            "INSERT INTO oc_pizza.user(role_id, address_id, restaurant_id, first_name, last_name, phone_number, email, password) VALUES (%(role_id)s, %(address_id)s, %(restaurant_id)s, %(first_name)s, %(last_name)s, %(phone_number)s, %(email)s, %(password)s);",
+            "INSERT INTO oc_pizza.user_(role_id, address_id, restaurant_id, first_name, last_name, phone_number, email, password) VALUES (%(role_id)s, %(address_id)s, %(restaurant_id)s, %(first_name)s, %(last_name)s, %(phone_number)s, %(email)s, %(password)s);",
             users,
         )
 
@@ -123,7 +124,7 @@ class PopulateDatabase:
             },
         ]
         self.cursor.executemany(
-            "INSERT INTO oc_pizza.user(role_id, address_id, first_name, last_name, phone_number, email, password) VALUES (%(role_id)s, %(address_id)s, %(first_name)s, %(last_name)s, %(phone_number)s, %(email)s, %(password)s);",
+            "INSERT INTO oc_pizza.user_(role_id, address_id, first_name, last_name, phone_number, email, password) VALUES (%(role_id)s, %(address_id)s, %(first_name)s, %(last_name)s, %(phone_number)s, %(email)s, %(password)s);",
             national_team,
         )
 
@@ -158,19 +159,13 @@ class PopulateDatabase:
         for ingredient in ingredient_list:
             self.cursor.execute(
                 "INSERT INTO oc_pizza.product(name, is_ingredient) VALUES (%(name)s, %(is_ingredient)s);",
-                {
-                    "name": ingredient,
-                    "is_ingredient": True,
-                },
+                {"name": ingredient, "is_ingredient": True,},
             )
 
         for product in product_list:
             self.cursor.execute(
                 "INSERT INTO oc_pizza.product(name, is_ingredient) VALUES (%(name)s, %(is_ingredient)s);",
-                {
-                    "name": product,
-                    "is_ingredient": False,
-                },
+                {"name": product, "is_ingredient": False,},
             )
         self.database.commit()
 
@@ -187,9 +182,7 @@ class PopulateDatabase:
         for recipe in recipe_list:
             self.cursor.execute(
                 "INSERT INTO oc_pizza.recipe(name) VALUES (%(name)s);",
-                {
-                    "name": recipe,
-                },
+                {"name": recipe,},
             )
         self.database.commit()
 
@@ -201,11 +194,11 @@ class PopulateDatabase:
             for item in DATA.PRODUCT_LIST:
                 item["restaurant_id"] = _ + 1
             self.cursor.executemany(
-                "INSERT INTO oc_pizza.article_catalogue(restaurant_id, recipe_id, price, name, available, image_name, description) VALUES (%(restaurant_id)s, %(recipe_id)s, %(price)s, %(name)s, %(available)s, %(image_name)s, %(description)s);",
+                "INSERT INTO oc_pizza.article_catalogue(restaurant_id, recipe_id, unit_price, name, available, image_name, description) VALUES (%(restaurant_id)s, %(recipe_id)s, %(unit_price)s, %(name)s, %(available)s, %(image_name)s, %(description)s);",
                 DATA.RECIPE_LIST,
             )
             self.cursor.executemany(
-                "INSERT INTO oc_pizza.article_catalogue(restaurant_id, product_id, price, name, available, image_name, description) VALUES (%(restaurant_id)s, %(product_id)s, %(price)s, %(name)s, %(available)s, %(image_name)s, %(description)s);",
+                "INSERT INTO oc_pizza.article_catalogue(restaurant_id, product_id, unit_price, name, available, image_name, description) VALUES (%(restaurant_id)s, %(product_id)s, %(unit_price)s, %(name)s, %(available)s, %(image_name)s, %(description)s);",
                 DATA.PRODUCT_LIST,
             )
         self.database.commit()
@@ -254,23 +247,51 @@ class PopulateDatabase:
                 order,
             )
             self.database.commit()
-            self.cursor.execute(
-                "INSERT INTO oc_pizza.bill(order_reference, date, amount) VALUES (%(order_reference)s, %(date_order)s, %(amount)s);",
-                order,
-            )
-            self.database.commit()
+            self._insert_order_line(order_reference, order["date_order"], order["order_paid"])
             order_reference += 1
 
-    def insert_order_line(self):
+    def _insert_order_line(self, order_reference: int, date_order, order_paid) -> None:
+        article_list = random.sample(range(1, 11), random.randint(1, 5))
+        total_amount = 0
+        for article_id in article_list:
+            quantity = random.randint(1, 5)
+            self.cursor.execute(f'SELECT unit_price FROM oc_pizza.article_catalogue WHERE id={article_id}')
+            article_price = self.cursor.fetchone()
+            self.cursor.execute(
+                "INSERT INTO oc_pizza.orderline(order_reference,article_id, unit_price, quantity) VALUES (%(order_reference)s, %(article_id)s, %(unit_price)s, %(quantity)s);",
+                {
+                    "order_reference": order_reference,
+                    "article_id": article_id,
+                    "unit_price": article_price,
+                    "quantity": quantity,
+                },
+            )
+            total_amount += article_price[0]*quantity
+            self.database.commit()
+        if order_paid:
+            self._insert_bill(order_reference, total_amount, date_order)
+    
+    def _insert_bill(self, order_reference: int, total_amount: int, date_order) -> None:
+        self.cursor.execute(
+                "INSERT INTO oc_pizza.bill(order_reference, date, amount) VALUES (%(order_reference)s, %(date_order)s, %(amount)s);",
+                {
+                    "order_reference": order_reference,
+                    "date_order": date_order,
+                    "amount": total_amount,
+                },
+            )
+        self.database.commit()
+
+    def ko_insert_order_line(self):
         for order_reference in range(6):
             article_number = random.randint(1, 5)
             for new_article in range(article_number):
                 self.cursor.execute(
-                    "INSERT INTO oc_pizza.orderline(order_reference,article_id, price, quantity) VALUES (%(order_reference)s, %(article_id)s, %(price)s, %(quantity)s);",
+                    "INSERT INTO oc_pizza.orderline(order_reference,article_id, unit_price, quantity) VALUES (%(order_reference)s, %(article_id)s, %(unit_price)s, %(quantity)s);",
                     {
                         "order_reference": order_reference + 1,
                         "article_id": random.randint(1, 11),
-                        "price": self.fake.pyfloat(
+                        "unit_price": self.fake.pyfloat(
                             positive=True, left_digits=2, right_digits=2
                         ),
                         "quantity": random.randint(1, 3),
@@ -279,12 +300,9 @@ class PopulateDatabase:
                 self.database.commit()
             order_reference += 1
 
-
 def main() -> None:
     populate_database: PopulateDatabase = PopulateDatabase(
-        "oc-pizza",
-        "postgres",
-        "root",
+        environ['DB_NAME'], environ['DB_USER'], environ['DB_PASSWORD'],
     )
     populate_database.insert_address()
     populate_database.insert_restaurant()
@@ -298,7 +316,6 @@ def main() -> None:
     populate_database.insert_stock()
     populate_database.insert_order_status()
     populate_database.insert_order()
-    populate_database.insert_order_line()
 
 
 if __name__ == "__main__":
