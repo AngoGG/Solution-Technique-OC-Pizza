@@ -147,7 +147,7 @@ class DATA:
     ]
     ORDER_LIST: list = [
         {
-            "user_id": 5,
+            "client_id": 4,
             "status_id": 1,
             "address_id": 5,
             "restaurant_id": 1,
@@ -158,7 +158,8 @@ class DATA:
             "amount": fake.pyfloat(positive=True, left_digits=2, right_digits=2),
         },
         {
-            "user_id": 10,
+            "client_id": 12,
+            "preparator_id": 10,
             "status_id": 2,
             "address_id": 10,
             "restaurant_id": 3,
@@ -169,7 +170,9 @@ class DATA:
             "amount": fake.pyfloat(positive=True, left_digits=2, right_digits=2),
         },
         {
-            "user_id": 15,
+            "client_id": 12,
+            "preparator_id": 10,
+            "deliverer_id": 11,
             "status_id": 3,
             "address_id": random.randint(1, 40),
             "restaurant_id": 3,
@@ -180,7 +183,8 @@ class DATA:
             "amount": fake.pyfloat(positive=True, left_digits=2, right_digits=2),
         },
         {
-            "user_id": 20,
+            "client_id": 8,
+            "preparator_id": 6,
             "status_id": 4,
             "address_id": random.randint(1, 40),
             "restaurant_id": 2,
@@ -191,7 +195,9 @@ class DATA:
             "amount": fake.pyfloat(positive=True, left_digits=2, right_digits=2),
         },
         {
-            "user_id": 5,
+            "client_id": 16,
+            "preparator_id": 14,
+            "deliverer_id": 15,
             "status_id": 5,
             "address_id": random.randint(1, 40),
             "restaurant_id": 4,
@@ -202,7 +208,7 @@ class DATA:
             "amount": fake.pyfloat(positive=True, left_digits=2, right_digits=2),
         },
         {
-            "user_id": 5,
+            "client_id": 8,
             "status_id": 6,
             "address_id": random.randint(1, 40),
             "restaurant_id": 2,

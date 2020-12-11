@@ -172,33 +172,38 @@ class PopulateDatabase:
     def insert_recipe(self) -> None:
 
         recipe_list: list = [
-            "4 Fromages",
-            "Reine",
-            "Végétarienne",
-            "Chicken",
-            "Tartiflette",
+            {
+                "name": "4 Fromages",
+                "description": "Description Préparation Pizza 4 Fromages",
+            },
+            {"name": "Reine", "description": "Description Préparation Pizza Reine"},
+            {
+                "name": "Végétarienne",
+                "description": "Description Préparation Pizza Végétarienne",
+            },
+            {"name": "Chicken", "description": "Description Préparation Pizza Chicken"},
+            {
+                "name": "Tartiflette",
+                "description": "Description Préparation Pizza Tartiflette",
+            },
         ]
 
         for recipe in recipe_list:
             self.cursor.execute(
-                "INSERT INTO oc_pizza.recipe(name) VALUES (%(name)s);",
-                {"name": recipe,},
+                "INSERT INTO oc_pizza.recipe(name, preparation_description) VALUES (%(name)s, %(description)s);",
+                {"name": recipe["name"], "description": recipe["description"],},
             )
         self.database.commit()
 
     def insert_article_catalogue(self) -> None:
 
         for _ in range(5):
-            for item in DATA.RECIPE_LIST:
-                item["restaurant_id"] = _ + 1
-            for item in DATA.PRODUCT_LIST:
-                item["restaurant_id"] = _ + 1
             self.cursor.executemany(
-                "INSERT INTO oc_pizza.article_catalogue(restaurant_id, recipe_id, unit_price, name, available, image_name, description) VALUES (%(restaurant_id)s, %(recipe_id)s, %(unit_price)s, %(name)s, %(available)s, %(image_name)s, %(description)s);",
+                "INSERT INTO oc_pizza.article_catalogue(recipe_id, unit_price, name, available, image_name, description) VALUES (%(recipe_id)s, %(unit_price)s, %(name)s, %(available)s, %(image_name)s, %(description)s);",
                 DATA.RECIPE_LIST,
             )
             self.cursor.executemany(
-                "INSERT INTO oc_pizza.article_catalogue(restaurant_id, product_id, unit_price, name, available, image_name, description) VALUES (%(restaurant_id)s, %(product_id)s, %(unit_price)s, %(name)s, %(available)s, %(image_name)s, %(description)s);",
+                "INSERT INTO oc_pizza.article_catalogue(product_id, unit_price, name, available, image_name, description) VALUES (%(product_id)s, %(unit_price)s, %(name)s, %(available)s, %(image_name)s, %(description)s);",
                 DATA.PRODUCT_LIST,
             )
         self.database.commit()
@@ -242,12 +247,26 @@ class PopulateDatabase:
         order_reference = 1
         for order in DATA.ORDER_LIST:
             order["order_reference"] = order_reference
-            self.cursor.execute(
-                "INSERT INTO oc_pizza.user_order(user_id, status_id, address_id, restaurant_id, date_order, payment_mode, delivery, order_paid) VALUES (%(user_id)s, %(status_id)s, %(address_id)s, %(restaurant_id)s, %(date_order)s, %(payment_mode)s, %(delivery)s, %(order_paid)s);",
-                order,
-            )
+            if "preparator_id" in order.keys():
+                if "deliverer_id" in order.keys():
+                    self.cursor.execute(
+                        "INSERT INTO oc_pizza.user_order(client_id, preparator_id, deliverer_id, status_id, address_id, restaurant_id, date_order, payment_mode, delivery, order_paid) VALUES (%(client_id)s, %(preparator_id)s, %(deliverer_id)s, %(status_id)s, %(address_id)s, %(restaurant_id)s, %(date_order)s, %(payment_mode)s, %(delivery)s, %(order_paid)s);",
+                        order,
+                    )
+                else:
+                    self.cursor.execute(
+                        "INSERT INTO oc_pizza.user_order(client_id, preparator_id, status_id, address_id, restaurant_id, date_order, payment_mode, delivery, order_paid) VALUES (%(client_id)s, %(preparator_id)s, %(status_id)s, %(address_id)s, %(restaurant_id)s, %(date_order)s, %(payment_mode)s, %(delivery)s, %(order_paid)s);",
+                        order,
+                    )
+            else:
+                self.cursor.execute(
+                    "INSERT INTO oc_pizza.user_order(client_id, status_id, address_id, restaurant_id, date_order, payment_mode, delivery, order_paid) VALUES (%(client_id)s, %(status_id)s, %(address_id)s, %(restaurant_id)s, %(date_order)s, %(payment_mode)s, %(delivery)s, %(order_paid)s);",
+                    order,
+                )
             self.database.commit()
-            self._insert_order_line(order_reference, order["date_order"], order["order_paid"])
+            self._insert_order_line(
+                order_reference, order["date_order"], order["order_paid"]
+            )
             order_reference += 1
 
     def _insert_order_line(self, order_reference: int, date_order, order_paid) -> None:
@@ -255,7 +274,9 @@ class PopulateDatabase:
         total_amount = 0
         for article_id in article_list:
             quantity = random.randint(1, 5)
-            self.cursor.execute(f'SELECT unit_price FROM oc_pizza.article_catalogue WHERE id={article_id}')
+            self.cursor.execute(
+                f"SELECT unit_price FROM oc_pizza.article_catalogue WHERE id={article_id}"
+            )
             article_price = self.cursor.fetchone()
             self.cursor.execute(
                 "INSERT INTO oc_pizza.orderline(order_reference,article_id, unit_price, quantity) VALUES (%(order_reference)s, %(article_id)s, %(unit_price)s, %(quantity)s);",
@@ -266,20 +287,20 @@ class PopulateDatabase:
                     "quantity": quantity,
                 },
             )
-            total_amount += article_price[0]*quantity
+            total_amount += article_price[0] * quantity
             self.database.commit()
         if order_paid:
             self._insert_bill(order_reference, total_amount, date_order)
-    
+
     def _insert_bill(self, order_reference: int, total_amount: int, date_order) -> None:
         self.cursor.execute(
-                "INSERT INTO oc_pizza.bill(order_reference, date, amount) VALUES (%(order_reference)s, %(date_order)s, %(amount)s);",
-                {
-                    "order_reference": order_reference,
-                    "date_order": date_order,
-                    "amount": total_amount,
-                },
-            )
+            "INSERT INTO oc_pizza.bill(order_reference, date, amount) VALUES (%(order_reference)s, %(date_order)s, %(amount)s);",
+            {
+                "order_reference": order_reference,
+                "date_order": date_order,
+                "amount": total_amount,
+            },
+        )
         self.database.commit()
 
     def ko_insert_order_line(self):
@@ -300,9 +321,10 @@ class PopulateDatabase:
                 self.database.commit()
             order_reference += 1
 
+
 def main() -> None:
     populate_database: PopulateDatabase = PopulateDatabase(
-        environ['DB_NAME'], environ['DB_USER'], environ['DB_PASSWORD'],
+        environ["DB_NAME"], environ["DB_USER"], environ["DB_PASSWORD"],
     )
     populate_database.insert_address()
     populate_database.insert_restaurant()
