@@ -6,6 +6,7 @@ CREATE TABLE oc_pizza.recipe
 (
     id SERIAL NOT NULL,
     name VARCHAR NOT NULL,
+    preparation_description VARCHAR NOT NULL,
     CONSTRAINT recipe_pk PRIMARY KEY (id)
 );
 
@@ -57,11 +58,9 @@ CREATE TABLE oc_pizza.restaurant
     CONSTRAINT restaurant_pk PRIMARY KEY (id)
 );
 
-
 CREATE TABLE oc_pizza.article_catalogue
 (
     id SERIAL NOT NULL,
-    restaurant_id INTEGER NOT NULL,
     product_id INTEGER,
     recipe_id INTEGER,
     name VARCHAR NOT NULL,
@@ -108,7 +107,9 @@ CREATE TABLE oc_pizza.user_
 CREATE TABLE oc_pizza.user_order
 (
     reference SERIAL NOT NULL,
-    user_id INTEGER NOT NULL,
+    client_id INTEGER NOT NULL,
+    deliverer_id INTEGER,
+    preparator_id INTEGER,
     status_id INTEGER NOT NULL,
     address_id INTEGER NOT NULL,
     restaurant_id INTEGER NOT NULL,
@@ -175,6 +176,13 @@ ON DELETE NO ACTION
 ON UPDATE NO ACTION
 NOT DEFERRABLE;
 
+ALTER TABLE oc_pizza.orderline ADD CONSTRAINT article_catalogue_orderline_fk
+FOREIGN KEY (article_id)
+REFERENCES oc_pizza.article_catalogue (id)
+ON DELETE NO ACTION
+ON UPDATE NO ACTION
+NOT DEFERRABLE;
+
 ALTER TABLE oc_pizza.user_order ADD CONSTRAINT order_status_order_fk
 FOREIGN KEY (status_id)
 REFERENCES oc_pizza.order_status (id)
@@ -210,13 +218,6 @@ ON DELETE NO ACTION
 ON UPDATE NO ACTION
 NOT DEFERRABLE;
 
-ALTER TABLE oc_pizza.article_catalogue ADD CONSTRAINT restaurant_article_catalogue_fk
-FOREIGN KEY (restaurant_id)
-REFERENCES oc_pizza.restaurant (id)
-ON DELETE NO ACTION
-ON UPDATE NO ACTION
-NOT DEFERRABLE;
-
 ALTER TABLE oc_pizza.user_ ADD CONSTRAINT restaurant_user_fk
 FOREIGN KEY (restaurant_id)
 REFERENCES oc_pizza.restaurant (id)
@@ -231,13 +232,6 @@ ON DELETE NO ACTION
 ON UPDATE NO ACTION
 NOT DEFERRABLE;
 
-ALTER TABLE oc_pizza.orderline ADD CONSTRAINT article_catalogue_orderline_fk
-FOREIGN KEY (article_id)
-REFERENCES oc_pizza.article_catalogue (id)
-ON DELETE NO ACTION
-ON UPDATE NO ACTION
-NOT DEFERRABLE;
-
 ALTER TABLE oc_pizza.user_ ADD CONSTRAINT role_user_fk
 FOREIGN KEY (role_id)
 REFERENCES oc_pizza.role (id)
@@ -246,7 +240,21 @@ ON UPDATE NO ACTION
 NOT DEFERRABLE;
 
 ALTER TABLE oc_pizza.user_order ADD CONSTRAINT user_id_order_fk
-FOREIGN KEY (user_id)
+FOREIGN KEY (client_id)
+REFERENCES oc_pizza.user_ (id)
+ON DELETE NO ACTION
+ON UPDATE NO ACTION
+NOT DEFERRABLE;
+
+ALTER TABLE oc_pizza.user_order ADD CONSTRAINT user__user_order_fk
+FOREIGN KEY (deliverer_id)
+REFERENCES oc_pizza.user_ (id)
+ON DELETE NO ACTION
+ON UPDATE NO ACTION
+NOT DEFERRABLE;
+
+ALTER TABLE oc_pizza.user_order ADD CONSTRAINT user__user_order_fk1
+FOREIGN KEY (preparator_id)
 REFERENCES oc_pizza.user_ (id)
 ON DELETE NO ACTION
 ON UPDATE NO ACTION

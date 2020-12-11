@@ -16,19 +16,20 @@ ORDER BY restaurant_name ASC
 
 -- Sélection des informations et du contenu d'une commande
 SELECT rest.name pizzeria,
-    ord.reference order_reference, ord.order_paid, stat.name commande_status,
-    ord.delivery, addr.address_infos delivery_street, addr.city delivery_city,
-    us.first_name user_firstname, us.last_name user_lastname,
+    ord.reference order_reference, ord.order_paid, stat.name commande_status, preparator.first_name preparator,
+    ord.delivery, deliverer.first_name deliverer, addr.address_infos delivery_street, addr.city delivery_city,
+    client.first_name client_firstname, client.last_name client_lastname,
     cat.name article, line.quantity, line.unit_price
 FROM oc_pizza.user_order ord
-    JOIN oc_pizza.restaurant rest ON rest.id = ord.restaurant_id
-    JOIN oc_pizza.orderline line ON line.order_reference = ord.reference
-    JOIN oc_pizza.order_status stat ON stat.id = ord.status_id
-    JOIN oc_pizza.user_ us ON us.id = ord.user_id
-    JOIN oc_pizza.role rol ON rol.id = us.role_id
-    JOIN oc_pizza.article_catalogue cat ON cat.id = line.article_id
-    JOIN oc_pizza.address addr ON addr.id = ord.address_id
-WHERE ord.reference = 1
+    JOIN oc_pizza.restaurant rest ON ord.restaurant_id = rest.id
+    JOIN oc_pizza.orderline line ON ord.reference = line.order_reference
+    JOIN oc_pizza.order_status stat ON ord.status_id = stat.id
+    JOIN oc_pizza.user_ client ON ord.client_id = client.id
+    LEFT OUTER JOIN oc_pizza.user_ preparator ON ord.preparator_id = preparator.id
+    LEFT OUTER JOIN oc_pizza.user_ deliverer ON ord.deliverer_id = deliverer.id
+    JOIN oc_pizza.article_catalogue cat ON line.article_id = cat.id
+    JOIN oc_pizza.address addr ON ord.address_id = addr.id
+WHERE ord.reference = 5
 
 -- Sélection des commandes d'un restaurant
 SELECT rest.name pizzeria,
@@ -85,3 +86,8 @@ FROM oc_pizza.restaurant rest
 WHERE date_part('year', ord.date_order) = date_part('year', CURRENT_DATE)
 GROUP BY restaurant
 ORDER BY turnover DESC
+
+-- Requête sélection facture d'un restaurant
+SELECT bill_number, order_reference, date, amount
+FROM oc_pizza.bill
+WHERE order_reference = 2
